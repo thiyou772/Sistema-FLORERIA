@@ -667,12 +667,16 @@ const StateStore = {
 
   async deleteProduct(productId) {
     try {
-      await fetch(`${API_URL}/products/${productId}`, {
+      const res = await fetch(`${API_URL}/products/${productId}`, {
         method: 'DELETE'
       });
+      if (!res.ok) throw new Error('Error al eliminar producto');
       await this.loadAll();
+      return true;
     } catch (e) {
-      UIToast.show('Error al eliminar producto');
+      console.error(e);
+      UIToast.show('⚠️ Error al eliminar producto en el servidor');
+      return false;
     }
   },
 
@@ -1210,8 +1214,10 @@ const ProductsModule = {
 
   async deleteProduct(id) {
     if (confirm('¿Confirma la eliminación de este producto?')) {
-      await StateStore.deleteProduct(id);
-      UIToast.show('Producto eliminado correctamente');
+      const ok = await StateStore.deleteProduct(id);
+      if (ok) {
+        UIToast.show('Producto eliminado correctamente');
+      }
     }
   }
 };
