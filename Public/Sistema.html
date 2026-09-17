@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4d624d">
+<title>La Dalia — Sistema de Gestión Comercial</title>
+<!-- Chart.js para el gráfico de barras -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --bg-app: #f6f7f5;
+  --surface-panel: #ffffff;
+  --surface-subtle: #f8faf8;
+  --text-main: #1d2620;
+  --text-muted: #606d62;
+  --brand-primary: #4d624d;
+  --brand-hover: #3b4e3b;
+  --brand-light: #e8eee8;
+  --accent-gold: #9c7b3c;
+  --border-color: #e2e7e2;
+  --status-ok-bg: #e6f4ea;
+  --status-ok-text: #137333;
+  --status-warn-bg: #fef7e0;
+  --status-warn-text: #b06000;
+  --status-danger-bg: #fce8e6;
+  --status-danger-text: #c5221f;
+  --status-info-bg: #e8f0fe;
+  --status-info-text: #1a73e8;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.12);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: var(--bg-app); color: var(--text-main); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border: none; background: none; }
+
+.app-layout { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar { width: 250px; background: #1f2b22; color: #e1e8e2; padding: 24px 16px; position: fixed; inset: 0 auto 0 0; z-index: 20; display: flex; flex-direction: column; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 24px; border-bottom: 1px solid #2d3e31; }
+.brand-logo { width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--brand-primary); color: #fff; display: grid; place-items: center; font-size: 20px; font-weight: bold; }
+.brand-text h1 { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+.brand-text span { font-size: 10px; color: #9ab09c; text-transform: uppercase; letter-spacing: 1.5px; }
+
+.nav-section { margin-top: 20px; flex: 1; }
+.nav-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #728a75; padding: 0 10px 8px; font-weight: 600; }
+.nav-menu { display: flex; flex-direction: column; gap: 4px; }
+.nav-btn { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-sm); color: #c2d1c4; font-size: 14px; font-weight: 500; transition: all 0.15s ease; text-align: left; width: 100%; }
+.nav-btn:hover { background: #2b3b2f; color: #fff; }
+.nav-btn.active { background: var(--brand-primary); color: #fff; font-weight: 600; }
+.nav-btn .icon { font-size: 16px; width: 20px; text-align: center; }
+
+.sidebar-footer { padding: 12px; background: #172119; border-radius: var(--radius-sm); font-size: 12px; color: #8fa392; border: 1px solid #263629; }
+
+/* Main Content */
+.main-content { margin-left: 250px; flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar { height: 64px; background: var(--surface-panel); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; position: sticky; top: 0; z-index: 10; }
+.topbar-title h2 { font-size: 18px; font-weight: 700; color: var(--text-main); }
+.topbar-title p { font-size: 12px; color: var(--text-muted); }
+.user-profile { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--brand-light); color: var(--brand-primary); display: grid; place-items: center; font-weight: 700; }
+
+.content-container { padding: 28px 32px; max-width: 1400px; width: 100%; margin: 0 auto; }
+.view-panel { display: none; }
+.view-panel.active { display: block; }
+
+/* Page Headers & Buttons */
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.page-header h3 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+.page-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; transition: all 0.15s ease; white-space: nowrap; }
+.btn-primary { background: var(--brand-primary); color: #fff; box-shadow: var(--shadow-sm); }
+.btn-primary:hover { background: var(--brand-hover); }
+.btn-secondary { background: var(--surface-panel); border: 1px solid var(--border-color); color: var(--text-main); }
+.btn-secondary:hover { background: var(--surface-subtle); border-color: #cbd5cb; }
+.btn-danger { background: var(--status-danger-bg); color: var(--status-danger-text); }
+.btn-danger:hover { background: #f8d7d4; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-full { width: 100%; }
+
+/* Cards & Layout Grid */
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.card { background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow-sm); }
+.metric-card { display: flex; justify-content: space-between; align-items: flex-start; }
+.metric-value { font-size: 26px; font-weight: 700; margin-top: 8px; letter-spacing: -0.5px; }
+.metric-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.metric-icon { width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--brand-light); color: var(--brand-primary); display: grid; place-items: center; font-size: 18px; }
+
+.dashboard-layout { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+
+/* Dashboard Interactive Item */
+.clickable-order-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px; border-bottom: 1px solid var(--border-color); font-size: 12px;
+  cursor: pointer; border-radius: var(--radius-sm); transition: background 0.15s ease;
+}
+.clickable-order-item:hover {
+  background: var(--surface-subtle);
+}
+.clickable-order-item:last-child {
+  border-bottom: none;
+}
+
+/* Filter & Controls Bar */
+.controls-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.search-input { flex: 1; min-width: 200px; }
+input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea {
+  width: 100%; background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; color: var(--text-main); outline: none; transition: border-color 0.15s ease;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 3px var(--brand-light); }
+
+/* Tables */
+.table-container { background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); }
+.table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+th { background: var(--surface-subtle); color: var(--text-muted); padding: 12px 16px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color); }
+td { padding: 14px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafcfb; }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.badge-ok { background: var(--status-ok-bg); color: var(--status-ok-text); }
+.badge-warn { background: var(--status-warn-bg); color: var(--status-warn-text); }
+.badge-danger { background: var(--status-danger-bg); color: var(--status-danger-text); }
+.badge-info { background: var(--status-info-bg); color: var(--status-info-text); }
+
+/* POS / Sales Module */
+.pos-layout { display: grid; grid-template-columns: 1fr 360px; gap: 20px; align-items: start; }
+.products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.product-card { background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; text-align: left; transition: all 0.15s ease; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+.product-card:hover { border-color: var(--brand-primary); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.product-icon { font-size: 28px; margin-bottom: 8px; }
+.product-title { font-weight: 600; font-size: 13px; line-height: 1.3; margin-bottom: 4px; }
+.product-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+.product-price { font-weight: 700; font-size: 15px; color: var(--brand-primary); }
+
+.cart-panel { background: var(--surface-panel); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow-sm); position: sticky; top: 84px; }
+.cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+.cart-items-list { max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; padding-right: 4px; }
+.cart-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.cart-item-info { flex: 1; }
+.cart-item-title { font-weight: 600; }
+.cart-item-price { font-size: 11px; color: var(--text-muted); }
+.cart-item-controls { display: flex; align-items: center; gap: 8px; }
+.qty-btn { width: 24px; height: 24px; border-radius: 4px; background: var(--surface-subtle); border: 1px solid var(--border-color); display: grid; place-items: center; font-weight: bold; }
+.qty-btn:hover { background: var(--brand-light); }
+.cart-summary { border-top: 1px solid var(--border-color); padding-top: 16px; margin-bottom: 16px; }
+.cart-total-row { display: flex; justify-content: space-between; font-size: 18px; font-weight: 700; color: var(--text-main); }
+
+/* Forms & Modal */
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full-width { grid-column: 1 / -1; }
+.form-group label { font-size: 12px; font-weight: 600; color: var(--text-main); }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 17, 0.45); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+.modal-overlay.active { display: flex; }
+.modal-card { background: var(--surface-panel); border-radius: var(--radius-lg); width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color); }
+.modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.modal-header h4 { font-size: 16px; font-weight: 700; }
+.modal-close { font-size: 20px; color: var(--text-muted); border-radius: var(--radius-sm); width: 28px; height: 28px; display: grid; place-items: center; }
+.modal-close:hover { background: var(--surface-subtle); }
+.modal-body { padding: 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; background: var(--surface-subtle); border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+
+/* Feedback Component */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+.toast { background: var(--text-main); color: #fff; padding: 12px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-md); display: flex; align-items: center; gap: 10px; transform: translateY(20px); opacity: 0; transition: all 0.2s ease; }
+.toast.active { transform: translateY(0); opacity: 1; }
+
+.empty-state { padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .dashboard-layout, .pos-layout { grid-template-columns: 1fr; }
+  .cart-panel { position: static; }
+}
+@media (max-width: 768px) {
+  .sidebar { width: 70px; padding: 16px 8px; }
+  .brand-text, .nav-title, .nav-btn span:not(.icon), .sidebar-footer { display: none; }
+  .main-content { margin-left: 70px; }
+  .topbar, .content-container { padding-left: 16px; padding-right: 16px; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-layout">
+  <!-- Sidebar Navegación Principal -->
+  <aside class="sidebar">
+    <div>
+      <div class="brand">
+        <div class="brand-logo">🌸</div>
+        <div class="brand-text">
+          <h1>La Dalia</h1>
+          <span>Florería POS</span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-title">Módulos</div>
+        <nav class="nav-menu">
+          <button class="nav-btn active" data-view="dashboard"><span class="icon">⌂</span><span>Inicio</span></button>
+          <button class="nav-btn" data-view="ventas"><span class="icon">🛒</span><span>Nueva Venta</span></button>
+          <button class="nav-btn" data-view="pedidos"><span class="icon">📋</span><span>Pedidos</span></button>
+          <button class="nav-btn" data-view="stock"><span class="icon">📦</span><span>Stock</span></button>
+          <button class="nav-btn" data-view="productos"><span class="icon">🌷</span><span>Productos</span></button>
+          <button class="nav-btn" data-view="clientes"><span class="icon">👥</span><span>Clientes</span></button>
+          <button class="nav-btn" data-view="caja"><span class="icon">💰</span><span>Caja</span></button>
+          <button class="nav-btn" data-view="reportes"><span class="icon">📊</span><span>Reportes</span></button>
+        </nav>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <strong>Sistema Local</strong><br>
+      <span>Almacenamiento activo</span>
+    </div>
+  </aside>
+
+  <!-- Main View Panel Container -->
+  <main class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h2 id="currentViewTitle">Inicio</h2>
+        <p>Panel de Control Operativo</p>
+      </div>
+      <div class="user-profile">
+        <span>Administrador</span>
+        <div class="avatar">A</div>
+      </div>
+    </header>
+
+    <div class="content-container">
+      
+      <!-- DASHBOARD -->
+      <section id="dashboardView" class="view-panel active">
+        <div class="page-header">
+          <div>
+            <h3>Resumen Operativo</h3>
+            <p>Métricas de desempeño generales de la jornada.</p>
+          </div>
+          <button class="btn btn-primary" onclick="AppNav.go('ventas')">＋ Registrar Venta</button>
+        </div>
+        <div class="metrics-grid">
+          <div class="card metric-card">
+            <div>
+              <div class="metric-label">Ventas del Día</div>
+              <div class="metric-value" id="dashSales">$0</div>
+            </div>
+            <div class="metric-icon">💰</div>
+          </div>
+          <div class="card metric-card">
+            <div>
+              <div class="metric-label">Pedidos Pendientes</div>
+              <div class="metric-value" id="dashOrders">0</div>
+            </div>
+            <div class="metric-icon">📋</div>
+          </div>
+          <div class="card metric-card">
+            <div>
+              <div class="metric-label">Productos Activos</div>
+              <div class="metric-value" id="dashProducts">0</div>
+            </div>
+            <div class="metric-icon">🌷</div>
+          </div>
+          <div class="card metric-card">
+            <div>
+              <div class="metric-label">Alertas de Stock</div>
+              <div class="metric-value" id="dashLowStock">0</div>
+            </div>
+            <div class="metric-icon">⚠️</div>
+          </div>
+        </div>
+        <div class="dashboard-layout">
+          <div class="card">
+            <h4 style="margin-bottom: 6px;">Pedidos Programados para Hoy</h4>
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">Haz clic en cualquier pedido para gestionarlo o ver sus detalles.</p>
+            <div id="dashTodayOrdersList"></div>
+          </div>
+          <div class="card">
+            <h4 style="margin-bottom: 14px;">Reposición Requerida</h4>
+            <div id="dashLowStockList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VENTAS / POS -->
+      <section id="ventasView" class="view-panel">
+        <div class="page-header">
+          <div>
+            <h3>Punto de Venta</h3>
+            <p>Selección de catálogo y checkout comercial.</p>
+          </div>
+          <button class="btn btn-secondary" onclick="CartModule.clear()">Vaciar Carrito</button>
+        </div>
+        <div class="pos-layout">
+          <div>
+            <div class="controls-bar">
+              <input type="text" id="posSearchInput" class="search-input" placeholder="🔎 Buscar por nombre o categoría..." oninput="POSModule.renderProducts()">
+              <select id="posCategoryFilter" style="width: 180px;" onchange="POSModule.renderProducts()">
+                <option value="">Todas las categorías</option>
+                <option value="Ramos">Ramos</option>
+                <option value="Bouquets">Bouquets</option>
+                <option value="Plantas">Plantas</option>
+                <option value="Regalos">Regalos</option>
+                <option value="Desayunos">Desayunos</option>
+                <option value="Accesorios">Accesorios</option>
+                <option value="Flores">Flores</option>
+              </select>
+            </div>
+            <div id="posProductsGrid" class="products-grid"></div>
+          </div>
+          <div class="cart-panel">
+            <div class="cart-header">
+              <h4 style="margin: 0;">Detalle de Orden</h4>
+            </div>
+            <div id="cartItemsList" class="cart-items-list"></div>
+            <div class="cart-summary">
+              <div class="cart-total-row">
+                <span>Total:</span>
+                <span id="cartTotalDisplay">$0</span>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-full" style="margin-bottom: 8px;" onclick="POSModule.openCheckout()">💳 Cobrar Venta</button>
+            <button class="btn btn-secondary btn-full" onclick="POSModule.saveAsOrder()">📋 Convertir a Pedido</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PEDIDOS -->
+      <section id="pedidosView" class="view-panel">
+        <div class="page-header">
+          <div>
+            <h3>Gestión de Pedidos</h3>
+            <p>Control de entregas, reservas y estados de trabajo.</p>
+          </div>
+          <button class="btn btn-primary" onclick="OrdersModule.openModal()">＋ Nuevo Pedido</button>
+        </div>
+        <div class="controls-bar">
+          <input type="text" id="orderSearchInput" class="search-input" placeholder="🔎 Buscar por cliente o N°..." oninput="OrdersModule.render()">
+          <select id="orderStatusFilter" style="width: 180px;" onchange="OrdersModule.render()">
+            <option value="">Todos los estados</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Confirmado">Confirmado</option>
+            <option value="Preparar">Preparar</option>
+            <option value="Listo">Listo</option>
+            <option value="Entregado">Entregado</option>
+            <option value="Cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div class="table-container">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>N°</th>
+                  <th>Cliente</th>
+                  <th>Detalle</th>
+                  <th>Fecha</th>
+                  <th>Horario</th>
+                  <th>Modalidad</th>
+                  <th>Total</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="ordersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- STOCK -->
+      <section id="stockView" class="view-panel">
+        <div class="page-header">
+          <div>
+            <h3>Control de Inventario</h3>
+            <p>Ajuste manual de unidades y seguimiento de mínimos.</p>
+          </div>
+          <button class="btn btn-primary" onclick="StockModule.openAdjustModal()">⚙️ Ajuste Manual de Stock</button>
+        </div>
+        <div class="controls-bar">
+          <input type="text" id="stockSearchInput" class="search-input" placeholder="🔎 Buscar insumo/producto..." oninput="StockModule.render()">
+          <select id="stockStatusFilter" style="width: 180px;" onchange="StockModule.render()">
+            <option value="">Todos los ítems</option>
+            <option value="low">Stock bajo mínimo</option>
+            <option value="out">Sin existencias</option>
+          </select>
+        </div>
+        <div class="table-container">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Categoría</th>
+                  <th>Stock Actual</th>
+                  <th>Stock Mínimo</th>
+                  <th>Precio Unitario</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="stockTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRODUCTOS -->
+      <section id="productosView" class="view-panel">
+        <div class="page-header">
+          <div>
+            <h3>Catálogo de Productos</h3>
+            <p>Configuración de precios y alta de nuevos artículos.</p>
+          </div>
+          <button class="btn btn-primary" onclick="ProductsModule.openModal()">＋ Nuevo Producto</button>
+        </div>
+        <div class="table-container">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Categoría</th>
+                  <th>Precio</th>
+                  <th>Stock</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- CLIENTES -->
+      <section id="clientesView" class="view-panel">
+        <div class="page-header">
+          <div>
+            <h3>Directorio de Clientes</h3>
+            <p>Historial comercial y libreta de contactos.</p>
+          </div>
+          <button class="btn btn-primary" onclick="CustomersModule.openModal()">＋ Nuevo Cliente</button>
+        </div>
+        <div class="controls-bar">
+          <input type="text" id="customerSearchInput" class="search-input" placeholder="🔎 Buscar cliente por nombre, teléfono o nota..." oninput="CustomersModule.render()">
+        </div>
+        <div class="table-container">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Teléfono</th>
+                  <th>Dirección</th>
+                  <th>Total Pedidos</th>
+                  <th>Monto Acumulado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="customersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- CAJA -->
+      <section id="cajaView" class="view-panel">
+        <div class="page-header">
+          <div>
+            <h3>Flujo de Caja</h3>
+            <p>Auditoría de ingresos y egresos diarios.</p>
+          </div>
+          <button class="btn btn-primary" onclick="CashModule.openModal()">＋ Registrar Movimiento</button>
+        </div>
+        <div class="metrics-grid">
+          <div class="card metric-card">
+            <div><div class="metric-label">Ingresos</div><div class="metric-value" id="cashIncomeDisplay" style="color:var(--status-ok-text);">$0</div></div>
+            <div class="metric-icon">↗</div>
+          </div>
+          <div class="card metric-card">
+            <div><div class="metric-label">Egresos</div><div class="metric-value" id="cashExpensesDisplay" style="color:var(--status-danger-text);">$0</div></div>
+            <div class="metric-icon">↘</div>
+          </div>
+          <div class="card metric-card">
+            <div><div class="metric-label">Balance Neto</div><div class="metric-value" id="cashBalanceDisplay">$0</div></div>
+            <div class="metric-icon">💵</div>
+          </div>
+        </div>
+        <div class="table-container">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Concepto</th>
+                  <th>Método</th>
+                  <th>Tipo</th>
+                  <th>Monto</th>
+                </tr>
+              </thead>
+              <tbody id="cashTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- REPORTES CON GRÁFICO DE BARRAS -->
+      <section id="reportesView" class="view-panel">
+        <div class="page-header">
+          <div>
+            <h3>Análisis y Reportes</h3>
+            <p>Métricas consolidadas y rendimiento por rango temporal.</p>
+          </div>
+          <div style="width: 220px;">
+            <select id="reportRangeFilter" onchange="ReportsModule.render()">
+              <option value="today">Hoy (Por Horas)</option>
+              <option value="7days" selected>Últimos 7 días</option>
+              <option value="14days">Últimas 2 semanas (14 días)</option>
+              <option value="month">Último mes (30 días)</option>
+              <option value="all">Histórico completo</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="metrics-grid">
+          <div class="card metric-card">
+            <div><div class="metric-label">Ventas en Periodo</div><div class="metric-value" id="repTotalSales">$0</div></div>
+          </div>
+          <div class="card metric-card">
+            <div><div class="metric-label">Promedio por Venta</div><div class="metric-value" id="repAvgTicket">$0</div></div>
+          </div>
+          <div class="card metric-card">
+            <div><div class="metric-label">Clientes Registrados</div><div class="metric-value" id="repTotalClients">0</div></div>
+          </div>
+        </div>
+
+        <div class="dashboard-layout" style="grid-template-columns: 1.8fr 1fr; margin-bottom: 20px;">
+          <!-- Card con Gráfico de Barras -->
+          <div class="card">
+            <h4 style="margin-bottom:14px;" id="chartTitle">Evolución de Ventas por Día</h4>
+            <div style="position: relative; height: 300px; width: 100%;">
+              <canvas id="salesChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Ranking de productos -->
+          <div class="card">
+            <h4 style="margin-bottom:14px;">Artículos Más Demandados</h4>
+            <div id="repTopProductsList"></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Modal global dinámico -->
+<div id="appModal" class="modal-overlay" onclick="if(event.target===this) UIModal.close()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h4 id="modalTitle">Título Modal</h4>
+      <button class="modal-close" onclick="UIModal.close()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<!-- Toast global de feedback -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script>
+/**
+ * Arquitectura de Software Frontend
+ * Patrón: Modulos decoupled + Singleton State Manager + Chart.js
+ */
+
+// --- UTILS & SANITIZACIÓN ---
+const Utils = {
+  escapeHTML(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/[&<>'"]/g, tag => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[tag] || tag));
+  },
+  formatCurrency(val) {
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(val || 0);
+  },
+  formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const parts = dateStr.split('-');
+    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
+  },
+  getTodayISO() {
+    return new Date().toISOString().slice(0, 10);
+  },
+  getCurrentTimeString() {
+    return new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  },
+  generateUID() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+  }
+};
+
+// --- ALMACENAMIENTO Y ESTADO ---
+const StateStore = {
+  products: [],
+  orders: [],
+  customers: [],
+  cash: [],
+  cart: [],
+
+  init() {
+    this.products = JSON.parse(localStorage.getItem('ld_products_v2') || 'null') || [
+      { id: '1', name: 'Ramo Primavera', category: 'Ramos', price: 25000, stock: 8, min: 3, icon: '🌷' },
+      { id: '2', name: 'Bouquet Premium', category: 'Bouquets', price: 35000, stock: 5, min: 2, icon: '💐' },
+      { id: '3', name: 'Ramo de Rosas', category: 'Ramos', price: 28000, stock: 4, min: 2, icon: '🌹' },
+      { id: '4', name: 'Planta de Interior', category: 'Plantas', price: 18000, stock: 12, min: 4, icon: '🪴' },
+      { id: '5', name: 'Desayuno Floral', category: 'Desayunos', price: 45000, stock: 3, min: 2, icon: '☕' },
+      { id: '6', name: 'Oso + Flores', category: 'Regalos', price: 22000, stock: 2, min: 3, icon: '🧸' },
+      { id: '7', name: 'Tarjeta Especial', category: 'Accesorios', price: 3500, stock: 20, min: 5, icon: '💌' },
+      { id: '8', name: 'Tulipán Amarillo', category: 'Flores', price: 2500, stock: 18, min: 8, icon: '🌷' }
+    ];
+    this.orders = JSON.parse(localStorage.getItem('ld_orders_v2') || '[]');
+    this.customers = JSON.parse(localStorage.getItem('ld_customers_v2') || 'null') || [
+      { id: '1', name: 'María González', phone: '2284 123456', address: 'Av. Colón 123', notes: 'Papel madera.', orders: 4, total: 128000 },
+      { id: '2', name: 'Juan Pérez', phone: '2284 456789', address: 'Belgrano 245', notes: 'Entregas por la tarde.', orders: 2, total: 56000 }
+    ];
+    this.cash = JSON.parse(localStorage.getItem('ld_cash_v2') || '[]');
+    this.persist();
+  },
+
+  persist() {
+    localStorage.setItem('ld_products_v2', JSON.stringify(this.products));
+    localStorage.setItem('ld_orders_v2', JSON.stringify(this.orders));
+    localStorage.setItem('ld_customers_v2', JSON.stringify(this.customers));
+    localStorage.setItem('ld_cash_v2', JSON.stringify(this.cash));
+  }
+};
+
+// --- COMPONENTES UI GLOBALES ---
+const UIToast = {
+  show(message) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<span>${Utils.escapeHTML(message)}</span>`;
+    container.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('active'), 10);
+    setTimeout(() => {
+      toast.classList.remove('active');
+      setTimeout(() => toast.remove(), 200);
+    }, 2500);
+  }
+};
+
+const UIModal = {
+  open(title, bodyHTML, footerHTML = '') {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = bodyHTML;
+    document.getElementById('modalFooter').innerHTML = footerHTML;
+    document.getElementById('appModal').classList.add('active');
+  },
+  close() {
+    document.getElementById('appModal').classList.remove('active');
+  }
+};
+
+// --- NAVEGACIÓN ---
+const AppNav = {
+  currentView: 'dashboard',
+  go(viewKey) {
+    document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.view === viewKey));
+    
+    const target = document.getElementById(`${viewKey}View`);
+    if (target) {
+      target.classList.add('active');
+      this.currentView = viewKey;
+      
+      const titles = {
+        dashboard: 'Inicio', ventas: 'Punto de Venta', pedidos: 'Gestión de Pedidos',
+        stock: 'Control de Inventario', productos: 'Catálogo de Productos',
+        clientes: 'Directorio de Clientes', caja: 'Flujo de Caja', reportes: 'Análisis y Reportes'
+      };
+      document.getElementById('currentViewTitle').textContent = titles[viewKey] || 'La Dalia';
+      this.renderCurrentView();
+    }
+  },
+  renderCurrentView() {
+    switch(this.currentView) {
+      case 'dashboard': DashboardModule.render(); break;
+      case 'ventas': POSModule.renderProducts(); CartModule.render(); break;
+      case 'pedidos': OrdersModule.render(); break;
+      case 'stock': StockModule.render(); break;
+      case 'productos': ProductsModule.render(); break;
+      case 'clientes': CustomersModule.render(); break;
+      case 'caja': CashModule.render(); break;
+      case 'reportes': ReportsModule.render(); break;
+    }
+  }
+};
+
+// --- MÓDULO POS & CARRITO ---
+const CartModule = {
+  add(productId) {
+    const prod = StateStore.products.find(p => p.id === productId);
+    if (!prod || prod.stock <= 0) {
+      UIToast.show('Producto sin existencias disponibles');
+      return;
+    }
+    const item = StateStore.cart.find(c => c.id === productId);
+    if (item) {
+      if (item.qty >= prod.stock) {
+        UIToast.show('No hay más stock disponible de este producto');
+        return;
+      }
+      item.qty++;
+    } else {
+      StateStore.cart.push({ id: productId, qty: 1 });
+    }
+    this.render();
+  },
+  updateQty(productId, delta) {
+    const item = StateStore.cart.find(c => c.id === productId);
+    const prod = StateStore.products.find(p => p.id === productId);
+    if (!item) return;
+
+    item.qty += delta;
+    if (item.qty <= 0) {
+      StateStore.cart = StateStore.cart.filter(c => c.id !== productId);
+    } else if (prod && item.qty > prod.stock) {
+      item.qty = prod.stock;
+      UIToast.show('Alcanzado el límite máximo de stock');
+    }
+    this.render();
+  },
+  clear() {
+    StateStore.cart = [];
+    this.render();
+  },
+  getTotal() {
+    return StateStore.cart.reduce((acc, item) => {
+      const prod = StateStore.products.find(p => p.id === item.id);
+      return acc + (prod ? prod.price * item.qty : 0);
+    }, 0);
+  },
+  render() {
+    const container = document.getElementById('cartItemsList');
+    if (StateStore.cart.length === 0) {
+      container.innerHTML = `<div class="empty-state">El carrito está vacío</div>`;
+      document.getElementById('cartTotalDisplay').textContent = Utils.formatCurrency(0);
+      return;
+    }
+    container.innerHTML = StateStore.cart.map(item => {
+      const prod = StateStore.products.find(p => p.id === item.id) || {};
+      return `
+        <div class="cart-item">
+          <div class="cart-item-info">
+            <div class="cart-item-title">${Utils.escapeHTML(prod.name)}</div>
+            <div class="cart-item-price">${Utils.formatCurrency(prod.price)} x ${item.qty}</div>
+          </div>
+          <div class="cart-item-controls">
+            <button class="qty-btn" onclick="CartModule.updateQty('${prod.id}', -1)">-</button>
+            <span style="font-size:12px; font-weight:bold;">${item.qty}</span>
+            <button class="qty-btn" onclick="CartModule.updateQty('${prod.id}', 1)">+</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('cartTotalDisplay').textContent = Utils.formatCurrency(this.getTotal());
+  }
+};
+
+const POSModule = {
+  renderProducts() {
+    const query = (document.getElementById('posSearchInput')?.value || '').toLowerCase();
+    const cat = document.getElementById('posCategoryFilter')?.value || '';
+    
+    const filtered = StateStore.products.filter(p => 
+      (p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query)) &&
+      (!cat || p.category === cat)
+    );
+
+    const grid = document.getElementById('posProductsGrid');
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;">No se encontraron artículos</div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map(p => `
+      <div class="product-card" onclick="CartModule.add('${p.id}')">
+        <div>
+          <div class="product-icon">${p.icon || '🌸'}</div>
+          <div class="product-title">${Utils.escapeHTML(p.name)}</div>
+          <div class="product-meta">${Utils.escapeHTML(p.category)} · Stock: ${p.stock}</div>
+        </div>
+        <div class="product-price">${Utils.formatCurrency(p.price)}</div>
+      </div>
+    `).join('');
+  },
+
+  openCheckout() {
+    if (StateStore.cart.length === 0) {
+      UIToast.show('Agregue productos al carrito antes de cobrar');
+      return;
+    }
+    const total = CartModule.getTotal();
+    const body = `
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Cliente Asignado</label>
+          <select id="coCustomer">
+            <option value="">Consumidor Final</option>
+            ${StateStore.customers.map(c => `<option value="${c.id}">${Utils.escapeHTML(c.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Método de Pago</label>
+          <select id="coMethod">
+            <option>Efectivo</option>
+            <option>Transferencia</option>
+            <option>Mercado Pago</option>
+            <option>Débito</option>
+            <option>Crédito</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Descuento ($)</label>
+          <input type="number" id="coDiscount" value="0" min="0" oninput="POSModule.updateCheckoutTotal(${total})">
+        </div>
+        <div class="form-group full-width">
+          <label>Total Final a Cobrar</label>
+          <input type="text" id="coTotalDisplay" value="${Utils.formatCurrency(total)}" disabled style="font-weight:bold; font-size:16px;">
+        </div>
+      </div>
+    `;
+    const footer = `
+      <button class="btn btn-secondary" onclick="UIModal.close()">Cancelar</button>
+      <button class="btn btn-primary" onclick="POSModule.processCheckout()">Confirmar Venta</button>
+    `;
+    UIModal.open('Procesar Venta', body, footer);
+  },
+
+  updateCheckoutTotal(baseTotal) {
+    const discount = Math.max(0, Number(document.getElementById('coDiscount').value) || 0);
+    const finalTotal = Math.max(0, baseTotal - discount);
+    document.getElementById('coTotalDisplay').value = Utils.formatCurrency(finalTotal);
+  },
+
+  processCheckout() {
+    const discount = Math.max(0, Number(document.getElementById('coDiscount').value) || 0);
+    const finalTotal = Math.max(0, CartModule.getTotal() - discount);
+    const method = document.getElementById('coMethod').value;
+    const customerId = document.getElementById('coCustomer').value;
+
+    StateStore.cart.forEach(item => {
+      const p = StateStore.products.find(x => x.id === item.id);
+      if (p) p.stock = Math.max(0, p.stock - item.qty);
+    });
+
+    StateStore.cash.push({
+      id: Utils.generateUID(),
+      date: Utils.getTodayISO(),
+      time: Utils.getCurrentTimeString(),
+      concept: 'Venta Directa POS',
+      method,
+      type: 'Ingreso',
+      amount: finalTotal
+    });
+
+    let customerName = 'Consumidor Final';
+    if (customerId) {
+      const c = StateStore.customers.find(x => x.id === customerId);
+      if (c) {
+        c.orders = (c.orders || 0) + 1;
+        c.total = (c.total || 0) + finalTotal;
+        customerName = c.name;
+      }
+    }
+
+    StateStore.orders.unshift({
+      id: (1000 + StateStore.orders.length + 1).toString(),
+      customer: customerName,
+      items: StateStore.cart.map(i => {
+        const p = StateStore.products.find(x => x.id === i.id);
+        return `${i.qty}x ${p ? p.name : 'Prod'}`;
+      }).join(', '),
+      date: Utils.getTodayISO(),
+      time: Utils.getCurrentTimeString(),
+      delivery: 'Retiro Local',
+      total: finalTotal,
+      status: 'Entregado'
+    });
+
+    StateStore.persist();
+    CartModule.clear();
+    UIModal.close();
+    AppNav.renderCurrentView();
+    UIToast.show('Venta completada con éxito');
+  },
+
+  saveAsOrder() {
+    if (StateStore.cart.length === 0) {
+      UIToast.show('Agregue productos para generar un pedido');
+      return;
+    }
+    const details = StateStore.cart.map(i => {
+      const p = StateStore.products.find(x => x.id === i.id);
+      return `${i.qty}x ${p ? p.name : 'Prod'}`;
+    }).join(', ');
+    
+    OrdersModule.openModal(null, {
+      items: details,
+      total: CartModule.getTotal()
+    });
+  }
+};
+
+// --- MÓDULO DE STOCK ---
+const StockModule = {
+  render() {
+    const query = (document.getElementById('stockSearchInput')?.value || '').toLowerCase();
+    const filter = document.getElementById('stockStatusFilter')?.value || '';
+
+    const items = StateStore.products.filter(p => {
+      const matchQ = p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query);
+      if (filter === 'low') return matchQ && p.stock <= p.min;
+      if (filter === 'out') return matchQ && p.stock === 0;
+      return matchQ;
+    });
+
+    const tbody = document.getElementById('stockTableBody');
+    if (items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No existen registros de inventario</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = items.map(p => {
+      let badge = '<span class="badge badge-ok">Normal</span>';
+      if (p.stock === 0) badge = '<span class="badge badge-danger">Sin Stock</span>';
+      else if (p.stock <= p.min) badge = '<span class="badge badge-warn">Stock Bajo</span>';
+
+      return `
+        <tr>
+          <td><strong>${p.icon || '🌸'} ${Utils.escapeHTML(p.name)}</strong></td>
+          <td>${Utils.escapeHTML(p.category)}</td>
+          <td><strong>${p.stock}</strong></td>
+          <td>${p.min}</td>
+          <td>${Utils.formatCurrency(p.price)}</td>
+          <td>${badge}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm" onclick="StockModule.openAdjustModal('${p.id}')">✏️ Modificar Stock</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  openAdjustModal(selectedId = null) {
+    const body = `
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Producto Seleccionado</label>
+          <select id="stProductId">
+            ${StateStore.products.map(p => `
+              <option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>
+                ${Utils.escapeHTML(p.name)} (Stock actual: ${p.stock})
+              </option>
+            `).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Ajuste</label>
+          <select id="stMode">
+            <option value="set">Establecer Valor Fijo (=)</option>
+            <option value="add">Incrementar Stock (+)</option>
+            <option value="sub">Decrementar Stock (-)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cantidad</label>
+          <input type="number" id="stQty" min="0" value="1">
+        </div>
+      </div>
+    `;
+    const footer = `
+      <button class="btn btn-secondary" onclick="UIModal.close()">Cancelar</button>
+      <button class="btn btn-primary" onclick="StockModule.saveAdjust()">Guardar Modificación</button>
+    `;
+    UIModal.open('Ajuste Manual de Inventario', body, footer);
+  },
+
+  saveAdjust() {
+    const pId = document.getElementById('stProductId').value;
+    const mode = document.getElementById('stMode').value;
+    const val = Math.max(0, Number(document.getElementById('stQty').value) || 0);
+
+    const prod = StateStore.products.find(p => p.id === pId);
+    if (!prod) return;
+
+    if (mode === 'set') prod.stock = val;
+    else if (mode === 'add') prod.stock += val;
+    else if (mode === 'sub') prod.stock = Math.max(0, prod.stock - val);
+
+    StateStore.persist();
+    UIModal.close();
+    this.render();
+    UIToast.show(`Stock de ${prod.name} actualizado a ${prod.stock}`);
+  }
+};
+
+// --- MÓDULO PRODUCTOS ---
+const ProductsModule = {
+  render() {
+    const tbody = document.getElementById('productsTableBody');
+    if (StateStore.products.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No existen productos guardados</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = StateStore.products.map(p => `
+      <tr>
+        <td><strong>${p.icon || '🌸'} ${Utils.escapeHTML(p.name)}</strong></td>
+        <td>${Utils.escapeHTML(p.category)}</td>
+        <td>${Utils.formatCurrency(p.price)}</td>
+        <td><strong>${p.stock}</strong></td>
+        <td>
+          <span class="badge ${p.stock <= p.min ? 'badge-warn' : 'badge-ok'}">
+            ${p.stock <= p.min ? 'Stock Bajo' : 'Activo'}
+          </span>
+        </td>
+        <td>
+          <button class="btn btn-secondary btn-sm" onclick="ProductsModule.openModal('${p.id}')">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="ProductsModule.deleteProduct('${p.id}')">Eliminar</button>
+        </td>
+      </tr>
+    `).join('');
+  },
+
+  openModal(id = null) {
+    const p = id ? StateStore.products.find(x => x.id === id) : null;
+    const body = `
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre del Producto</label>
+          <input type="text" id="pmName" value="${p ? Utils.escapeHTML(p.name) : ''}">
+        </div>
+        <div class="form-group">
+          <label>Categoría</label>
+          <select id="pmCat">
+            ${['Ramos','Bouquets','Plantas','Regalos','Desayunos','Accesorios','Flores'].map(c => `
+              <option ${p && p.category === c ? 'selected' : ''}>${c}</option>
+            `).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Precio ($)</label>
+          <input type="number" id="pmPrice" min="0" value="${p ? p.price : 0}">
+        </div>
+        <div class="form-group">
+          <label>Stock Inicial/Actual</label>
+          <input type="number" id="pmStock" min="0" value="${p ? p.stock : 0}">
+        </div>
+        <div class="form-group">
+          <label>Alerta Mínima</label>
+          <input type="number" id="pmMin" min="0" value="${p ? p.min : 2}">
+        </div>
+        <div class="form-group">
+          <label>Ícono/Emoji</label>
+          <input type="text" id="pmIcon" value="${p ? Utils.escapeHTML(p.icon) : '🌸'}">
+        </div>
+      </div>
+    `;
+    const footer = `
+      <button class="btn btn-secondary" onclick="UIModal.close()">Cancelar</button>
+      <button class="btn btn-primary" onclick="ProductsModule.save('${p ? p.id : ''}')">${p ? 'Guardar Cambios' : 'Crear Producto'}</button>
+    `;
+    UIModal.open(p ? 'Editar Producto' : 'Nuevo Producto', body, footer);
+  },
+
+  save(editId) {
+    const name = document.getElementById('pmName').value.trim();
+    if (!name) {
+      UIToast.show('El nombre es obligatorio');
+      return;
+    }
+
+    const payload = {
+      name,
+      category: document.getElementById('pmCat').value,
+      price: Math.max(0, Number(document.getElementById('pmPrice').value) || 0),
+      stock: Math.max(0, Number(document.getElementById('pmStock').value) || 0),
+      min: Math.max(0, Number(document.getElementById('pmMin').value) || 0),
+      icon: document.getElementById('pmIcon').value.trim() || '🌸'
+    };
+
+    if (editId) {
+      const prod = StateStore.products.find(x => x.id === editId);
+      if (prod) Object.assign(prod, payload);
+    } else {
+      StateStore.products.push({ id: Utils.generateUID(), ...payload });
+    }
+
+    StateStore.persist();
+    UIModal.close();
+    this.render();
+    UIToast.show(editId ? 'Producto modificado' : 'Producto creado');
+  },
+
+  deleteProduct(id) {
+    if (confirm('¿Confirma la eliminación de este producto?')) {
+      StateStore.products = StateStore.products.filter(p => p.id !== id);
+      StateStore.persist();
+      this.render();
+      UIToast.show('Producto eliminado del sistema');
+    }
+  }
+};
+
+// --- MÓDULO PEDIDOS ---
+const OrdersModule = {
+  render() {
+    const q = (document.getElementById('orderSearchInput')?.value || '').toLowerCase();
+    const st = document.getElementById('orderStatusFilter')?.value || '';
+
+    const list = StateStore.orders.filter(o => 
+      (o.customer.toLowerCase().includes(q) || o.id.includes(q)) &&
+      (!st || o.status === st)
+    );
+
+    const tbody = document.getElementById('ordersTableBody');
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" class="empty-state">No existen pedidos que coincidan</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(o => `
+      <tr>
+        <td>#${o.id}</td>
+        <td><strong>${Utils.escapeHTML(o.customer)}</strong></td>
+        <td>${Utils.escapeHTML(o.items)}</td>
+        <td>${Utils.formatDate(o.date)}</td>
+        <td>${o.time || '-'}</td>
+        <td>${Utils.escapeHTML(o.delivery)}</td>
+        <td>${Utils.formatCurrency(o.total)}</td>
+        <td>
+          <select onchange="OrdersModule.updateStatus('${o.id}', this.value)" style="padding: 4px; font-size:11px;">
+            ${['Pendiente','Confirmado','Preparar','Listo','Entregado','Cancelado'].map(s => `
+              <option ${s === o.status ? 'selected' : ''}>${s}</option>
+            `).join('')}
+          </select>
+        </td>
+        <td>
+          <button class="btn btn-danger btn-sm" onclick="OrdersModule.deleteOrder('${o.id}')">×</button>
+        </td>
+      </tr>
+    `).join('');
+  },
+
+  openModal(id = null, presetData = null) {
+    const body = `
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre del Cliente</label>
+          <input type="text" id="omCustomer" placeholder="Ej: Juan Pérez">
+        </div>
+        <div class="form-group">
+          <label>Teléfono Contacto</label>
+          <input type="text" id="omPhone" placeholder="2284 ...">
+        </div>
+        <div class="form-group">
+          <label>Fecha Compromiso</label>
+          <input type="date" id="omDate" value="${Utils.getTodayISO()}">
+        </div>
+        <div class="form-group">
+          <label>Horario</label>
+          <input type="time" id="omTime" value="17:00">
+        </div>
+        <div class="form-group">
+          <label>Modalidad de Entrega</label>
+          <select id="omDelivery">
+            <option>Retiro Local</option>
+            <option>Envío a Domicilio</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Monto Total ($)</label>
+          <input type="number" id="omTotal" value="${presetData ? presetData.total : 0}">
+        </div>
+        <div class="form-group full-width">
+          <label>Detalle de Productos</label>
+          <textarea id="omItems" rows="2">${presetData ? Utils.escapeHTML(presetData.items) : ''}</textarea>
+        </div>
+        <div class="form-group full-width">
+          <label>Dirección / Indicaciones</label>
+          <input type="text" id="omAddress" placeholder="Dirección, nota para la tarjeta...">
+        </div>
+      </div>
+    `;
+    const footer = `
+      <button class="btn btn-secondary" onclick="UIModal.close()">Cancelar</button>
+      <button class="btn btn-primary" onclick="OrdersModule.save()">Guardar Pedido</button>
+    `;
+    UIModal.open('Nuevo Pedido Comercial', body, footer);
+  },
+
+  save() {
+    const customer = document.getElementById('omCustomer').value.trim();
+    if (!customer) {
+      UIToast.show('Debe ingresar el nombre del cliente');
+      return;
+    }
+
+    const newOrder = {
+      id: (1000 + StateStore.orders.length + 1).toString(),
+      customer,
+      items: document.getElementById('omItems').value.trim() || 'Sin detalle',
+      date: document.getElementById('omDate').value,
+      time: document.getElementById('omTime').value,
+      delivery: document.getElementById('omDelivery').value,
+      total: Math.max(0, Number(document.getElementById('omTotal').value) || 0),
+      status: 'Pendiente',
+      address: document.getElementById('omAddress').value.trim()
+    };
+
+    StateStore.orders.unshift(newOrder);
+
+    const existingC = StateStore.customers.find(c => c.name.toLowerCase() === customer.toLowerCase());
+    if (!existingC) {
+      StateStore.customers.push({
+        id: Utils.generateUID(),
+        name: customer,
+        phone: document.getElementById('omPhone').value.trim(),
+        address: document.getElementById('omAddress').value.trim(),
+        notes: '',
+        orders: 0,
+        total: 0
+      });
+    }
+
+    StateStore.persist();
+    UIModal.close();
+    this.render();
+    UIToast.show('Pedido guardado exitosamente');
+  },
+
+  updateStatus(id, newStatus) {
+    const o = StateStore.orders.find(x => x.id === id);
+    if (o) {
+      o.status = newStatus;
+      StateStore.persist();
+      UIToast.show('Estado del pedido actualizado');
+    }
+  },
+
+  deleteOrder(id) {
+    if (confirm('¿Desea cancelar y eliminar este pedido?')) {
+      StateStore.orders = StateStore.orders.filter(o => o.id !== id);
+      StateStore.persist();
+      this.render();
+      UIToast.show('Pedido eliminado');
+    }
+  },
+
+  // Modal Pop-Up de Gestión Rápida desde el Dashboard
+  openQuickView(orderId) {
+    const o = StateStore.orders.find(x => x.id === orderId);
+    if (!o) return;
+
+    const body = `
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div class="card" style="background:var(--surface-subtle); padding:14px; margin-bottom:0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="font-size:15px; color:var(--brand-primary);">#${o.id} — ${Utils.escapeHTML(o.customer)}</strong>
+            <span class="badge badge-info">${o.status}</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px;">
+            <span>📅 <strong>Fecha/Hora:</strong> ${Utils.formatDate(o.date)} ${o.time || ''}</span>
+            <span>🚚 <strong>Modalidad:</strong> ${Utils.escapeHTML(o.delivery)}</span>
+            <span>📍 <strong>Dirección/Notas:</strong> ${Utils.escapeHTML(o.address || 'Sin especificación')}</span>
+            <span>💵 <strong>Monto Total:</strong> ${Utils.formatCurrency(o.total)}</span>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Artículos Incluidos</label>
+          <div style="padding:10px; background:var(--surface-panel); border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:13px;">
+            ${Utils.escapeHTML(o.items)}
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Actualizar Estado del Pedido</label>
+          <select id="quickOrderStatus" onchange="OrdersModule.updateStatusFromQuickView('${o.id}')">
+            ${['Pendiente','Confirmado','Preparar','Listo','Entregado','Cancelado'].map(s => `
+              <option ${s === o.status ? 'selected' : ''}>${s}</option>
+            `).join('')}
+          </select>
+        </div>
+      </div>
+    `;
+
+    const footer = `
+      <button class="btn btn-secondary" onclick="UIModal.close()">Cerrar</button>
+      <button class="btn btn-primary" onclick="OrdersModule.goToOrdersAndSearch('${o.id}')">Ir a Módulo Pedidos</button>
+    `;
+
+    UIModal.open(`Gestión Rápida de Pedido #${o.id}`, body, footer);
+  },
+
+  updateStatusFromQuickView(orderId) {
+    const newStatus = document.getElementById('quickOrderStatus').value;
+    this.updateStatus(orderId, newStatus);
+    UIModal.close();
+    AppNav.renderCurrentView();
+  },
+
+  goToOrdersAndSearch(orderId) {
+    UIModal.close();
+    AppNav.go('pedidos');
+    const input = document.getElementById('orderSearchInput');
+    if (input) {
+      input.value = orderId;
+      this.render();
+    }
+  }
+};
+
+// --- MÓDULO CLIENTES ---
+const CustomersModule = {
+  render() {
+    const query = (document.getElementById('customerSearchInput')?.value || '').toLowerCase();
+    const list = StateStore.customers.filter(c => 
+      (c.name + ' ' + (c.phone||'') + ' ' + (c.notes||'')).toLowerCase().includes(query)
+    );
+
+    const tbody = document.getElementById('customersTableBody');
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No se encontraron clientes</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(c => `
+      <tr>
+        <td>
+          <strong>${Utils.escapeHTML(c.name)}</strong>
+          ${c.notes ? `<br><small style="color:var(--text-muted);">${Utils.escapeHTML(c.notes)}</small>` : ''}
+        </td>
+        <td>${Utils.escapeHTML(c.phone || '-')}</td>
+        <td>${Utils.escapeHTML(c.address || '-')}</td>
+        <td>${c.orders || 0}</td>
+        <td>${Utils.formatCurrency(c.total || 0)}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm" onclick="CustomersModule.viewFile('${c.id}')">👁️ Ficha</button>
+          <button class="btn btn-secondary btn-sm" onclick="CustomersModule.openModal('${c.id}')">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="CustomersModule.deleteCustomer('${c.id}')">×</button>
+        </td>
+      </tr>
+    `).join('');
+  },
+
+  openModal(id = null) {
+    const c = id ? StateStore.customers.find(x => x.id === id) : null;
+    const body = `
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre y Apellido</label>
+          <input type="text" id="cmName" value="${c ? Utils.escapeHTML(c.name) : ''}">
+        </div>
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input type="text" id="cmPhone" value="${c ? Utils.escapeHTML(c.phone) : ''}">
+        </div>
+        <div class="form-group full-width">
+          <label>Dirección Habitual / Entrega</label>
+          <input type="text" id="cmAddress" value="${c ? Utils.escapeHTML(c.address) : ''}">
+        </div>
+        <div class="form-group full-width">
+          <label>Notas de Preferencia</label>
+          <textarea id="cmNotes" rows="2">${c ? Utils.escapeHTML(c.notes || '') : ''}</textarea>
+        </div>
+      </div>
+    `;
+    const footer = `
+      <button class="btn btn-secondary" onclick="UIModal.close()">Cancelar</button>
+      <button class="btn btn-primary" onclick="CustomersModule.save('${c ? c.id : ''}')">Guardar Cliente</button>
+    `;
+    UIModal.open(c ? 'Editar Ficha de Cliente' : 'Nuevo Cliente', body, footer);
+  },
+
+  save(editId) {
+    const name = document.getElementById('cmName').value.trim();
+    if (!name) {
+      UIToast.show('El nombre es obligatorio');
+      return;
+    }
+
+    const payload = {
+      name,
+      phone: document.getElementById('cmPhone').value.trim(),
+      address: document.getElementById('cmAddress').value.trim(),
+      notes: document.getElementById('cmNotes').value.trim()
+    };
+
+    if (editId) {
+      const c = StateStore.customers.find(x => x.id === editId);
+      if (c) Object.assign(c, payload);
+    } else {
+      StateStore.customers.push({ id: Utils.generateUID(), ...payload, orders: 0, total: 0 });
+    }
+
+    StateStore.persist();
+    UIModal.close();
+    this.render();
+    UIToast.show(editId ? 'Datos del cliente actualizados' : 'Cliente registrado');
+  },
+
+  deleteCustomer(id) {
+    if (confirm('¿Eliminar permanentemente a este cliente?')) {
+      StateStore.customers = StateStore.customers.filter(c => c.id !== id);
+      StateStore.persist();
+      this.render();
+      UIToast.show('Cliente removido de la base');
+    }
+  },
+
+  viewFile(id) {
+    const c = StateStore.customers.find(x => x.id === id);
+    if (!c) return;
+
+    const history = StateStore.orders.filter(o => o.customer.toLowerCase() === c.name.toLowerCase());
+    const body = `
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="card" style="background:var(--surface-subtle); padding:14px;">
+          <strong style="font-size:14px;">Contacto & Notas</strong><br>
+          <span style="font-size:12px;">📞 Teléfono: ${Utils.escapeHTML(c.phone || 'No asignado')}</span><br>
+          <span style="font-size:12px;">📍 Dirección: ${Utils.escapeHTML(c.address || 'No asignada')}</span><br>
+          <span style="font-size:12px;">📝 Observaciones: ${Utils.escapeHTML(c.notes || 'Sin notas registradas')}</span>
+        </div>
+        <div class="metrics-grid" style="grid-template-columns:1fr 1fr; gap:10px; margin-bottom:0;">
+          <div class="card" style="padding:12px;"><span class="metric-label">Pedidos Realizados</span><div class="metric-value">${c.orders || 0}</div></div>
+          <div class="card" style="padding:12px;"><span class="metric-label">Total Facturado</span><div class="metric-value">${Utils.formatCurrency(c.total || 0)}</div></div>
+        </div>
+        <h4>Historial Comercial</h4>
+        <div class="table-container" style="max-height:200px; overflow-y:auto;">
+          <table>
+            <thead><tr><th>N°</th><th>Fecha</th><th>Detalle</th><th>Monto</th><th>Estado</th></tr></thead>
+            <tbody>
+              ${history.length ? history.map(h => `
+                <tr>
+                  <td>#${h.id}</td>
+                  <td>${Utils.formatDate(h.date)}</td>
+                  <td>${Utils.escapeHTML(h.items)}</td>
+                  <td>${Utils.formatCurrency(h.total)}</td>
+                  <td><span class="badge badge-ok">${h.status}</span></td>
+                </tr>
+              `).join('') : '<tr><td colspan="5" class="empty-state">Sin historial registrado</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    UIModal.open(`Ficha Comercial: ${Utils.escapeHTML(c.name)}`, body, `<button class="btn btn-secondary" onclick="UIModal.close()">Cerrar</button>`);
+  }
+};
+
+// --- MÓDULO CAJA ---
+const CashModule = {
+  render() {
+    const inc = StateStore.cash.filter(x => x.type === 'Ingreso').reduce((a, b) => a + b.amount, 0);
+    const exp = StateStore.cash.filter(x => x.type === 'Egreso').reduce((a, b) => a + b.amount, 0);
+
+    document.getElementById('cashIncomeDisplay').textContent = Utils.formatCurrency(inc);
+    document.getElementById('cashExpensesDisplay').textContent = Utils.formatCurrency(exp);
+    document.getElementById('cashBalanceDisplay').textContent = Utils.formatCurrency(inc - exp);
+
+    const tbody = document.getElementById('cashTableBody');
+    if (StateStore.cash.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Sin movimientos financieros</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = StateStore.cash.slice().reverse().map(x => `
+      <tr>
+        <td>${x.time || '-'}</td>
+        <td>${Utils.escapeHTML(x.concept)}</td>
+        <td>${Utils.escapeHTML(x.method)}</td>
+        <td>
+          <span class="badge ${x.type === 'Ingreso' ? 'badge-ok' : 'badge-danger'}">${x.type}</span>
+        </td>
+        <td><strong>${Utils.formatCurrency(x.amount)}</strong></td>
+      </tr>
+    `).join('');
+  },
+
+  openModal() {
+    const body = `
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tipo Movimiento</label>
+          <select id="cmType">
+            <option>Ingreso</option>
+            <option>Egreso</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Monto ($)</label>
+          <input type="number" id="cmAmount" min="0" value="0">
+        </div>
+        <div class="form-group full-width">
+          <label>Concepto</label>
+          <input type="text" id="cmConcept" placeholder="Ej: Pago a proveedores, caja chica...">
+        </div>
+        <div class="form-group full-width">
+          <label>Método</label>
+          <select id="cmMethod">
+            <option>Efectivo</option>
+            <option>Transferencia</option>
+            <option>Mercado Pago</option>
+            <option>Débito</option>
+            <option>Crédito</option>
+          </select>
+        </div>
+      </div>
+    `;
+    const footer = `
+      <button class="btn btn-secondary" onclick="UIModal.close()">Cancelar</button>
+      <button class="btn btn-primary" onclick="CashModule.save()">Asentar Movimiento</button>
+    `;
+    UIModal.open('Movimiento de Caja', body, footer);
+  },
+
+  save() {
+    const amount = Math.max(0, Number(document.getElementById('cmAmount').value) || 0);
+    if (!amount) {
+      UIToast.show('Ingrese un monto válido');
+      return;
+    }
+
+    StateStore.cash.push({
+      id: Utils.generateUID(),
+      date: Utils.getTodayISO(),
+      time: Utils.getCurrentTimeString(),
+      concept: document.getElementById('cmConcept').value.trim() || 'Movimiento Manual',
+      method: document.getElementById('cmMethod').value,
+      type: document.getElementById('cmType').value,
+      amount
+    });
+
+    StateStore.persist();
+    UIModal.close();
+    this.render();
+    UIToast.show('Movimiento contable asentado');
+  }
+};
+
+// --- MÓDULO DASHBOARD ---
+const DashboardModule = {
+  render() {
+    const todayStr = Utils.getTodayISO();
+    const todaySales = StateStore.cash
+      .filter(c => c.type === 'Ingreso' && c.date === todayStr)
+      .reduce((acc, curr) => acc + curr.amount, 0);
+
+    const pendingOrders = StateStore.orders.filter(o => !['Entregado', 'Cancelado'].includes(o.status)).length;
+    const lowStockCount = StateStore.products.filter(p => p.stock <= p.min).length;
+
+    document.getElementById('dashSales').textContent = Utils.formatCurrency(todaySales);
+    document.getElementById('dashOrders').textContent = pendingOrders;
+    document.getElementById('dashProducts').textContent = StateStore.products.length;
+    document.getElementById('dashLowStock').textContent = lowStockCount;
+
+    // Render de Pedidos de Hoy
+    const todayOrders = StateStore.orders.filter(o => o.date === todayStr);
+    const containerOrders = document.getElementById('dashTodayOrdersList');
+    if (todayOrders.length === 0) {
+      containerOrders.innerHTML = `<div class="empty-state">No hay pedidos registrados para hoy</div>`;
+    } else {
+      containerOrders.innerHTML = todayOrders.slice(0, 6).map(o => `
+        <div class="clickable-order-item" onclick="OrdersModule.openQuickView('${o.id}')" title="Clic para abrir gestión rápida del pedido">
+          <div>
+            <strong>#${o.id} · ${Utils.escapeHTML(o.customer)}</strong>
+            <br><small style="color:var(--text-muted);">${o.time || 'Sin hora'} | ${Utils.escapeHTML(o.items)}</small>
+          </div>
+          <span class="badge badge-info">${o.status}</span>
+        </div>
+      `).join('');
+    }
+
+    const lowProds = StateStore.products.filter(p => p.stock <= p.min);
+    const containerLow = document.getElementById('dashLowStockList');
+    if (lowProds.length === 0) {
+      containerLow.innerHTML = `<div class="empty-state">Todo el catálogo cuenta con stock suficiente</div>`;
+    } else {
+      containerLow.innerHTML = lowProds.map(p => `
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-color); font-size:12px;">
+          <div><strong>${p.icon || '🌸'} ${Utils.escapeHTML(p.name)}</strong><br><small style="color:var(--text-muted);">Mínimo: ${p.min}</small></div>
+          <span class="badge badge-warn">Quedan: ${p.stock}</span>
+        </div>
+      `).join('');
+    }
+  }
+};
+
+// --- MÓDULO REPORTES CON GRÁFICO ---
+const ReportsModule = {
+  chartInstance: null,
+
+  render() {
+    const range = document.getElementById('reportRangeFilter')?.value || '7days';
+    const chartData = this.getAggregatedData(range);
+
+    const totalSales = chartData.values.reduce((a, b) => a + b, 0);
+    const countTransactions = chartData.filteredItems.length;
+    const avgTicket = countTransactions > 0 ? totalSales / countTransactions : 0;
+
+    document.getElementById('repTotalSales').textContent = Utils.formatCurrency(totalSales);
+    document.getElementById('repAvgTicket').textContent = Utils.formatCurrency(avgTicket);
+    document.getElementById('repTotalClients').textContent = StateStore.customers.length;
+    document.getElementById('chartTitle').textContent = `Evolución de Ventas (${chartData.title})`;
+
+    const counts = {};
+    chartData.filteredOrders.forEach(o => {
+      if (o.items) {
+        o.items.split(', ').forEach(itm => {
+          counts[itm] = (counts[itm] || 0) + 1;
+        });
+      }
+    });
+
+    const topArr = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const container = document.getElementById('repTopProductsList');
+    if (topArr.length === 0) {
+      container.innerHTML = `<div class="empty-state">Sin ventas en este periodo</div>`;
+    } else {
+      container.innerHTML = topArr.map(([item, qty], idx) => `
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-color); font-size:13px;">
+          <span><strong>#${idx + 1}</strong> ${Utils.escapeHTML(item)}</span>
+          <strong>${qty} u.</strong>
+        </div>
+      `).join('');
+    }
+
+    this.renderChart(chartData.labels, chartData.values);
+  },
+
+  getAggregatedData(range) {
+    const now = new Date();
+    let labels = [];
+    let values = [];
+    let filteredItems = [];
+    let filteredOrders = [];
+    let title = '';
+
+    const allIncome = StateStore.cash.filter(c => c.type === 'Ingreso');
+
+    if (range === 'today') {
+      title = 'Hoy por Horas';
+      const todayISO = Utils.getTodayISO();
+      filteredItems = allIncome.filter(c => c.date === todayISO);
+      filteredOrders = StateStore.orders.filter(o => o.date === todayISO);
+      
+      const hoursMap = {};
+      for (let h = 8; h <= 20; h += 2) {
+        const label = `${h.toString().padStart(2, '0')}:00`;
+        hoursMap[label] = 0;
+      }
+
+      filteredItems.forEach(item => {
+        if (item.time) {
+          const h = parseInt(item.time.split(':')[0], 10);
+          const block = `${(Math.floor(h / 2) * 2).toString().padStart(2, '0')}:00`;
+          if (hoursMap[block] !== undefined) {
+            hoursMap[block] += item.amount;
+          }
+        }
+      });
+
+      labels = Object.keys(hoursMap);
+      values = Object.values(hoursMap);
+
+    } else if (range === '7days' || range === '14days' || range === 'month') {
+      const days = range === '7days' ? 7 : (range === '14days' ? 14 : 30);
+      title = `Últimos ${days} días`;
+
+      const dateMap = {};
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const iso = d.toISOString().slice(0, 10);
+        const parts = iso.split('-');
+        const label = `${parts[2]}/${parts[1]}`;
+        dateMap[iso] = { label, amount: 0 };
+      }
+
+      const minDateStr = Object.keys(dateMap)[0];
+      filteredItems = allIncome.filter(c => c.date >= minDateStr);
+      filteredOrders = StateStore.orders.filter(o => o.date >= minDateStr);
+
+      filteredItems.forEach(item => {
+        if (dateMap[item.date]) {
+          dateMap[item.date].amount += item.amount;
+        }
+      });
+
+      labels = Object.values(dateMap).map(v => v.label);
+      values = Object.values(dateMap).map(v => v.amount);
+
+    } else {
+      title = 'Histórico';
+      filteredItems = allIncome;
+      filteredOrders = StateStore.orders;
+
+      const dateMap = {};
+      filteredItems.forEach(item => {
+        const parts = (item.date || '').split('-');
+        const label = parts.length === 3 ? `${parts[2]}/${parts[1]}` : item.date;
+        if (!dateMap[label]) dateMap[label] = 0;
+        dateMap[label] += item.amount;
+      });
+
+      labels = Object.keys(dateMap);
+      values = Object.values(dateMap);
+      if (labels.length === 0) {
+        labels = ['Sin datos'];
+        values = [0];
+      }
+    }
+
+    return { labels, values, filteredItems, filteredOrders, title };
+  },
+
+  renderChart(labels, values) {
+    const ctx = document.getElementById('salesChart');
+    if (!ctx) return;
+
+    if (this.chartInstance) {
+      this.chartInstance.destroy();
+    }
+
+    this.chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Ventas ($)',
+          data: values,
+          backgroundColor: '#4d624d',
+          borderColor: '#3b4e3b',
+          borderWidth: 1,
+          borderRadius: 6,
+          hoverBackgroundColor: '#3b4e3b'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (context) => ` Total: ${Utils.formatCurrency(context.raw)}`
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (value) => '$' + value.toLocaleString('es-AR')
+            },
+            grid: {
+              color: '#e2e7e2'
+            }
+          },
+          x: {
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+};
+
+// --- INICIALIZACIÓN ---
+document.addEventListener('DOMContentLoaded', () => {
+  StateStore.init();
+  
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => AppNav.go(btn.dataset.view));
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') UIModal.close();
+  });
+
+  AppNav.go('dashboard');
+});
+</script>
+</body>
+</html>
