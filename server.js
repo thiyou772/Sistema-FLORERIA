@@ -165,7 +165,7 @@ app.post('/api/cash', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor activo en puerto ${PORT}`);
   
-  // ELIMINAR PRODUCTO
+// ELIMINAR PRODUCTO EN LA BASE DE DATOS
 app.delete('/api/products/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -174,4 +174,5 @@ app.delete('/api/products/:id', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+  
 });
