@@ -79,6 +79,17 @@ app.put('/api/products/:id/stock', async (req, res) => {
   }
 });
 
+// ELIMINAR PRODUCTO EN LA BASE DE DATOS
+app.delete('/api/products/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM productos WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // CLIENTES
 app.get('/api/customers', async (req, res) => {
   try {
@@ -162,17 +173,7 @@ app.post('/api/cash', async (req, res) => {
   }
 });
 
+// INICIO DEL SERVIDOR
 app.listen(PORT, () => {
   console.log(`🚀 Servidor activo en puerto ${PORT}`);
-  
-// ELIMINAR PRODUCTO EN LA BASE DE DATOS
-app.delete('/api/products/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    await pool.query('DELETE FROM productos WHERE id = $1', [id]);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-  
 });
