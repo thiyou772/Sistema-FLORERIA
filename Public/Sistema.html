@@ -665,6 +665,17 @@ const StateStore = {
     }
   },
 
+  async deleteProduct(productId) {
+    try {
+      await fetch(`${API_URL}/products/${productId}`, {
+        method: 'DELETE'
+      });
+      await this.loadAll();
+    } catch (e) {
+      UIToast.show('Error al eliminar producto');
+    }
+  },
+
   async updateStock(productId, newStock) {
     try {
       await fetch(`${API_URL}/products/${productId}/stock`, {
@@ -1128,6 +1139,7 @@ const ProductsModule = {
         </td>
         <td>
           <button class="btn btn-secondary btn-sm" onclick="ProductsModule.openModal('${p.id}')">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="ProductsModule.deleteProduct('${p.id}')">Eliminar</button>
         </td>
       </tr>
     `).join('');
@@ -1194,6 +1206,13 @@ const ProductsModule = {
     await StateStore.saveProduct(payload);
     UIModal.close();
     UIToast.show(editId ? 'Producto modificado' : 'Producto creado');
+  },
+
+  async deleteProduct(id) {
+    if (confirm('¿Confirma la eliminación de este producto?')) {
+      await StateStore.deleteProduct(id);
+      UIToast.show('Producto eliminado correctamente');
+    }
   }
 };
 
