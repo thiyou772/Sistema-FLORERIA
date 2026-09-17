@@ -222,8 +222,8 @@ tr:hover td { background: #fafcfb; }
       </div>
     </div>
     <div class="sidebar-footer">
-      <strong>Sistema Local</strong><br>
-      <span>Almacenamiento activo</span>
+      <strong>Servidor en la Nube</strong><br>
+      <span>Conectado a Render</span>
     </div>
   </aside>
 
@@ -586,8 +586,11 @@ tr:hover td { background: #fafcfb; }
 <script>
 /**
  * Arquitectura de Software Frontend
- * Patrón: Modulos decoupled + Singleton State Manager + Chart.js
+ * Patrón: Modulos decoupled + API State Manager + Chart.js
  */
+
+// URL Base del servidor en Render
+const API_URL = 'https://sistema-floreria-g2si.onrender.com/api';
 
 // --- UTILS & SANITIZACIÓN ---
 const Utils = {
@@ -616,7 +619,7 @@ const Utils = {
   }
 };
 
-// --- ALMACENAMIENTO Y ESTADO ---
+// --- ALMACENAMIENTO Y ESTADO CONECTADO A LA API DE RENDER ---
 const StateStore = {
   products: [],
   orders: [],
@@ -624,31 +627,107 @@ const StateStore = {
   cash: [],
   cart: [],
 
-  init() {
-    this.products = JSON.parse(localStorage.getItem('ld_products_v2') || 'null') || [
-      { id: '1', name: 'Ramo Primavera', category: 'Ramos', price: 25000, stock: 8, min: 3, icon: '🌷' },
-      { id: '2', name: 'Bouquet Premium', category: 'Bouquets', price: 35000, stock: 5, min: 2, icon: '💐' },
-      { id: '3', name: 'Ramo de Rosas', category: 'Ramos', price: 28000, stock: 4, min: 2, icon: '🌹' },
-      { id: '4', name: 'Planta de Interior', category: 'Plantas', price: 18000, stock: 12, min: 4, icon: '🪴' },
-      { id: '5', name: 'Desayuno Floral', category: 'Desayunos', price: 45000, stock: 3, min: 2, icon: '☕' },
-      { id: '6', name: 'Oso + Flores', category: 'Regalos', price: 22000, stock: 2, min: 3, icon: '🧸' },
-      { id: '7', name: 'Tarjeta Especial', category: 'Accesorios', price: 3500, stock: 20, min: 5, icon: '💌' },
-      { id: '8', name: 'Tulipán Amarillo', category: 'Flores', price: 2500, stock: 18, min: 8, icon: '🌷' }
-    ];
-    this.orders = JSON.parse(localStorage.getItem('ld_orders_v2') || '[]');
-    this.customers = JSON.parse(localStorage.getItem('ld_customers_v2') || 'null') || [
-      { id: '1', name: 'María González', phone: '2284 123456', address: 'Av. Colón 123', notes: 'Papel madera.', orders: 4, total: 128000 },
-      { id: '2', name: 'Juan Pérez', phone: '2284 456789', address: 'Belgrano 245', notes: 'Entregas por la tarde.', orders: 2, total: 56000 }
-    ];
-    this.cash = JSON.parse(localStorage.getItem('ld_cash_v2') || '[]');
-    this.persist();
+  async init() {
+    await this.loadAll();
   },
 
-  persist() {
-    localStorage.setItem('ld_products_v2', JSON.stringify(this.products));
-    localStorage.setItem('ld_orders_v2', JSON.stringify(this.orders));
-    localStorage.setItem('ld_customers_v2', JSON.stringify(this.customers));
-    localStorage.setItem('ld_cash_v2', JSON.stringify(this.cash));
+  async loadAll() {
+    try {
+      const [resP, resO, resC, resK] = await Promise.all([
+        fetch(`${API_URL}/products`),
+        fetch(`${API_URL}/orders`),
+        fetch(`${API_URL}/customers`),
+        fetch(`${API_URL}/cash`)
+      ]);
+
+      this.products = await resP.json();
+      this.orders = await resO.json();
+      this.customers = await resC.json();
+      this.cash = await resK.json();
+
+      AppNav.renderCurrentView();
+    } catch (error) {
+      console.error('Error de conexión:', error);
+      UIToast.show('⚠️ Error al conectar con el servidor en Render');
+    }
+  },
+
+  async saveProduct(product) {
+    try {
+      await fetch(`${API_URL}/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(product)
+      });
+      await this.loadAll();
+    } catch (e) {
+      UIToast.show('Error al guardar producto');
+    }
+  },
+
+  async updateStock(productId, newStock) {
+    try {
+      await fetch(`${API_URL}/products/${productId}/stock`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stock: newStock })
+      });
+      await this.loadAll();
+    } catch (e) {
+      UIToast.show('Error al actualizar stock');
+    }
+  },
+
+  async saveOrder(order) {
+    try {
+      await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order)
+      });
+      await this.loadAll();
+    } catch (e) {
+      UIToast.show('Error al registrar pedido');
+    }
+  },
+
+  async updateOrderStatus(orderId, status) {
+    try {
+      await fetch(`${API_URL}/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      await this.loadAll();
+    } catch (e) {
+      UIToast.show('Error al actualizar estado del pedido');
+    }
+  },
+
+  async saveCustomer(customer) {
+    try {
+      await fetch(`${API_URL}/customers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customer)
+      });
+      await this.loadAll();
+    } catch (e) {
+      UIToast.show('Error al guardar cliente');
+    }
+  },
+
+  async saveCash(cashMovement) {
+    try {
+      await fetch(`${API_URL}/cash`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cashMovement)
+      });
+      await this.loadAll();
+    } catch (e) {
+      UIToast.show('Error al registrar movimiento contable');
+    }
   }
 };
 
@@ -863,18 +942,21 @@ const POSModule = {
     document.getElementById('coTotalDisplay').value = Utils.formatCurrency(finalTotal);
   },
 
-  processCheckout() {
+  async processCheckout() {
     const discount = Math.max(0, Number(document.getElementById('coDiscount').value) || 0);
     const finalTotal = Math.max(0, CartModule.getTotal() - discount);
     const method = document.getElementById('coMethod').value;
     const customerId = document.getElementById('coCustomer').value;
 
-    StateStore.cart.forEach(item => {
+    for (const item of StateStore.cart) {
       const p = StateStore.products.find(x => x.id === item.id);
-      if (p) p.stock = Math.max(0, p.stock - item.qty);
-    });
+      if (p) {
+        const updatedStock = Math.max(0, p.stock - item.qty);
+        await StateStore.updateStock(p.id, updatedStock);
+      }
+    }
 
-    StateStore.cash.push({
+    await StateStore.saveCash({
       id: Utils.generateUID(),
       date: Utils.getTodayISO(),
       time: Utils.getCurrentTimeString(),
@@ -891,10 +973,11 @@ const POSModule = {
         c.orders = (c.orders || 0) + 1;
         c.total = (c.total || 0) + finalTotal;
         customerName = c.name;
+        await StateStore.saveCustomer(c);
       }
     }
 
-    StateStore.orders.unshift({
+    await StateStore.saveOrder({
       id: (1000 + StateStore.orders.length + 1).toString(),
       customer: customerName,
       items: StateStore.cart.map(i => {
@@ -905,13 +988,12 @@ const POSModule = {
       time: Utils.getCurrentTimeString(),
       delivery: 'Retiro Local',
       total: finalTotal,
-      status: 'Entregado'
+      status: 'Entregado',
+      address: 'Venta presencial'
     });
 
-    StateStore.persist();
     CartModule.clear();
     UIModal.close();
-    AppNav.renderCurrentView();
     UIToast.show('Venta completada con éxito');
   },
 
@@ -1006,7 +1088,7 @@ const StockModule = {
     UIModal.open('Ajuste Manual de Inventario', body, footer);
   },
 
-  saveAdjust() {
+  async saveAdjust() {
     const pId = document.getElementById('stProductId').value;
     const mode = document.getElementById('stMode').value;
     const val = Math.max(0, Number(document.getElementById('stQty').value) || 0);
@@ -1014,14 +1096,14 @@ const StockModule = {
     const prod = StateStore.products.find(p => p.id === pId);
     if (!prod) return;
 
-    if (mode === 'set') prod.stock = val;
-    else if (mode === 'add') prod.stock += val;
-    else if (mode === 'sub') prod.stock = Math.max(0, prod.stock - val);
+    let targetStock = prod.stock;
+    if (mode === 'set') targetStock = val;
+    else if (mode === 'add') targetStock += val;
+    else if (mode === 'sub') targetStock = Math.max(0, targetStock - val);
 
-    StateStore.persist();
+    await StateStore.updateStock(pId, targetStock);
     UIModal.close();
-    this.render();
-    UIToast.show(`Stock de ${prod.name} actualizado a ${prod.stock}`);
+    UIToast.show(`Stock de ${prod.name} actualizado`);
   }
 };
 
@@ -1046,7 +1128,6 @@ const ProductsModule = {
         </td>
         <td>
           <button class="btn btn-secondary btn-sm" onclick="ProductsModule.openModal('${p.id}')">✏️ Editar</button>
-          <button class="btn btn-danger btn-sm" onclick="ProductsModule.deleteProduct('${p.id}')">Eliminar</button>
         </td>
       </tr>
     `).join('');
@@ -1093,7 +1174,7 @@ const ProductsModule = {
     UIModal.open(p ? 'Editar Producto' : 'Nuevo Producto', body, footer);
   },
 
-  save(editId) {
+  async save(editId) {
     const name = document.getElementById('pmName').value.trim();
     if (!name) {
       UIToast.show('El nombre es obligatorio');
@@ -1101,6 +1182,7 @@ const ProductsModule = {
     }
 
     const payload = {
+      id: editId || Utils.generateUID(),
       name,
       category: document.getElementById('pmCat').value,
       price: Math.max(0, Number(document.getElementById('pmPrice').value) || 0),
@@ -1109,26 +1191,9 @@ const ProductsModule = {
       icon: document.getElementById('pmIcon').value.trim() || '🌸'
     };
 
-    if (editId) {
-      const prod = StateStore.products.find(x => x.id === editId);
-      if (prod) Object.assign(prod, payload);
-    } else {
-      StateStore.products.push({ id: Utils.generateUID(), ...payload });
-    }
-
-    StateStore.persist();
+    await StateStore.saveProduct(payload);
     UIModal.close();
-    this.render();
     UIToast.show(editId ? 'Producto modificado' : 'Producto creado');
-  },
-
-  deleteProduct(id) {
-    if (confirm('¿Confirma la eliminación de este producto?')) {
-      StateStore.products = StateStore.products.filter(p => p.id !== id);
-      StateStore.persist();
-      this.render();
-      UIToast.show('Producto eliminado del sistema');
-    }
   }
 };
 
@@ -1166,7 +1231,7 @@ const OrdersModule = {
           </select>
         </td>
         <td>
-          <button class="btn btn-danger btn-sm" onclick="OrdersModule.deleteOrder('${o.id}')">×</button>
+          <button class="btn btn-secondary btn-sm" onclick="OrdersModule.openQuickView('${o.id}')">👁️ Ver</button>
         </td>
       </tr>
     `).join('');
@@ -1219,7 +1284,7 @@ const OrdersModule = {
     UIModal.open('Nuevo Pedido Comercial', body, footer);
   },
 
-  save() {
+  async save() {
     const customer = document.getElementById('omCustomer').value.trim();
     if (!customer) {
       UIToast.show('Debe ingresar el nombre del cliente');
@@ -1238,46 +1303,30 @@ const OrdersModule = {
       address: document.getElementById('omAddress').value.trim()
     };
 
-    StateStore.orders.unshift(newOrder);
+    await StateStore.saveOrder(newOrder);
 
     const existingC = StateStore.customers.find(c => c.name.toLowerCase() === customer.toLowerCase());
     if (!existingC) {
-      StateStore.customers.push({
+      await StateStore.saveCustomer({
         id: Utils.generateUID(),
         name: customer,
         phone: document.getElementById('omPhone').value.trim(),
         address: document.getElementById('omAddress').value.trim(),
         notes: '',
-        orders: 0,
-        total: 0
+        orders: 1,
+        total: newOrder.total
       });
     }
 
-    StateStore.persist();
     UIModal.close();
-    this.render();
-    UIToast.show('Pedido guardado exitosamente');
+    UIToast.show('Pedido registrado correctamente');
   },
 
-  updateStatus(id, newStatus) {
-    const o = StateStore.orders.find(x => x.id === id);
-    if (o) {
-      o.status = newStatus;
-      StateStore.persist();
-      UIToast.show('Estado del pedido actualizado');
-    }
+  async updateStatus(id, newStatus) {
+    await StateStore.updateOrderStatus(id, newStatus);
+    UIToast.show('Estado del pedido actualizado');
   },
 
-  deleteOrder(id) {
-    if (confirm('¿Desea cancelar y eliminar este pedido?')) {
-      StateStore.orders = StateStore.orders.filter(o => o.id !== id);
-      StateStore.persist();
-      this.render();
-      UIToast.show('Pedido eliminado');
-    }
-  },
-
-  // Modal Pop-Up de Gestión Rápida desde el Dashboard
   openQuickView(orderId) {
     const o = StateStore.orders.find(x => x.id === orderId);
     if (!o) return;
@@ -1323,11 +1372,10 @@ const OrdersModule = {
     UIModal.open(`Gestión Rápida de Pedido #${o.id}`, body, footer);
   },
 
-  updateStatusFromQuickView(orderId) {
+  async updateStatusFromQuickView(orderId) {
     const newStatus = document.getElementById('quickOrderStatus').value;
-    this.updateStatus(orderId, newStatus);
+    await this.updateStatus(orderId, newStatus);
     UIModal.close();
-    AppNav.renderCurrentView();
   },
 
   goToOrdersAndSearch(orderId) {
@@ -1368,7 +1416,6 @@ const CustomersModule = {
         <td>
           <button class="btn btn-secondary btn-sm" onclick="CustomersModule.viewFile('${c.id}')">👁️ Ficha</button>
           <button class="btn btn-secondary btn-sm" onclick="CustomersModule.openModal('${c.id}')">✏️ Editar</button>
-          <button class="btn btn-danger btn-sm" onclick="CustomersModule.deleteCustomer('${c.id}')">×</button>
         </td>
       </tr>
     `).join('');
@@ -1403,40 +1450,28 @@ const CustomersModule = {
     UIModal.open(c ? 'Editar Ficha de Cliente' : 'Nuevo Cliente', body, footer);
   },
 
-  save(editId) {
+  async save(editId) {
     const name = document.getElementById('cmName').value.trim();
     if (!name) {
       UIToast.show('El nombre es obligatorio');
       return;
     }
 
+    const c = editId ? StateStore.customers.find(x => x.id === editId) : {};
+
     const payload = {
+      id: editId || Utils.generateUID(),
       name,
       phone: document.getElementById('cmPhone').value.trim(),
       address: document.getElementById('cmAddress').value.trim(),
-      notes: document.getElementById('cmNotes').value.trim()
+      notes: document.getElementById('cmNotes').value.trim(),
+      orders: c.orders || 0,
+      total: c.total || 0
     };
 
-    if (editId) {
-      const c = StateStore.customers.find(x => x.id === editId);
-      if (c) Object.assign(c, payload);
-    } else {
-      StateStore.customers.push({ id: Utils.generateUID(), ...payload, orders: 0, total: 0 });
-    }
-
-    StateStore.persist();
+    await StateStore.saveCustomer(payload);
     UIModal.close();
-    this.render();
-    UIToast.show(editId ? 'Datos del cliente actualizados' : 'Cliente registrado');
-  },
-
-  deleteCustomer(id) {
-    if (confirm('¿Eliminar permanentemente a este cliente?')) {
-      StateStore.customers = StateStore.customers.filter(c => c.id !== id);
-      StateStore.persist();
-      this.render();
-      UIToast.show('Cliente removido de la base');
-    }
+    UIToast.show(editId ? 'Cliente actualizado' : 'Cliente registrado');
   },
 
   viewFile(id) {
@@ -1482,8 +1517,8 @@ const CustomersModule = {
 // --- MÓDULO CAJA ---
 const CashModule = {
   render() {
-    const inc = StateStore.cash.filter(x => x.type === 'Ingreso').reduce((a, b) => a + b.amount, 0);
-    const exp = StateStore.cash.filter(x => x.type === 'Egreso').reduce((a, b) => a + b.amount, 0);
+    const inc = StateStore.cash.filter(x => x.type === 'Ingreso').reduce((a, b) => a + Number(b.amount), 0);
+    const exp = StateStore.cash.filter(x => x.type === 'Egreso').reduce((a, b) => a + Number(b.amount), 0);
 
     document.getElementById('cashIncomeDisplay').textContent = Utils.formatCurrency(inc);
     document.getElementById('cashExpensesDisplay').textContent = Utils.formatCurrency(exp);
@@ -1545,14 +1580,14 @@ const CashModule = {
     UIModal.open('Movimiento de Caja', body, footer);
   },
 
-  save() {
+  async save() {
     const amount = Math.max(0, Number(document.getElementById('cmAmount').value) || 0);
     if (!amount) {
       UIToast.show('Ingrese un monto válido');
       return;
     }
 
-    StateStore.cash.push({
+    await StateStore.saveCash({
       id: Utils.generateUID(),
       date: Utils.getTodayISO(),
       time: Utils.getCurrentTimeString(),
@@ -1562,10 +1597,8 @@ const CashModule = {
       amount
     });
 
-    StateStore.persist();
     UIModal.close();
-    this.render();
-    UIToast.show('Movimiento contable asentado');
+    UIToast.show('Movimiento contable registrado');
   }
 };
 
@@ -1575,7 +1608,7 @@ const DashboardModule = {
     const todayStr = Utils.getTodayISO();
     const todaySales = StateStore.cash
       .filter(c => c.type === 'Ingreso' && c.date === todayStr)
-      .reduce((acc, curr) => acc + curr.amount, 0);
+      .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
     const pendingOrders = StateStore.orders.filter(o => !['Entregado', 'Cancelado'].includes(o.status)).length;
     const lowStockCount = StateStore.products.filter(p => p.stock <= p.min).length;
@@ -1686,7 +1719,7 @@ const ReportsModule = {
           const h = parseInt(item.time.split(':')[0], 10);
           const block = `${(Math.floor(h / 2) * 2).toString().padStart(2, '0')}:00`;
           if (hoursMap[block] !== undefined) {
-            hoursMap[block] += item.amount;
+            hoursMap[block] += Number(item.amount);
           }
         }
       });
@@ -1714,7 +1747,7 @@ const ReportsModule = {
 
       filteredItems.forEach(item => {
         if (dateMap[item.date]) {
-          dateMap[item.date].amount += item.amount;
+          dateMap[item.date].amount += Number(item.amount);
         }
       });
 
@@ -1731,7 +1764,7 @@ const ReportsModule = {
         const parts = (item.date || '').split('-');
         const label = parts.length === 3 ? `${parts[2]}/${parts[1]}` : item.date;
         if (!dateMap[label]) dateMap[label] = 0;
-        dateMap[label] += item.amount;
+        dateMap[label] += Number(item.amount);
       });
 
       labels = Object.keys(dateMap);
@@ -1808,8 +1841,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') UIModal.close();
   });
-
-  AppNav.go('dashboard');
 });
 </script>
 </body>
